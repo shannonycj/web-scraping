@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from scrapy.loader import ItemLoader
+from sentdex.items import SentdexItem
 import pandas as pd
 import datetime
 
@@ -10,21 +12,16 @@ class UsStocksSpider(scrapy.Spider):
     start_urls = ['http://sentdex.com/financial-analysis//']
 
     def parse(self, response):
-        all_items = response.xpath('//*[@id="fulltable"]/tbody/tr')
-        ticker = []; name = []; volumne = []; sent = []; delta = []
-        for item in all_items:
-            ticker.append(item.xpath('./td[1]/text()').extract_first())
-            name.append(item.xpath('./td[2]/text()').extract_first())
-            volumne.append(item.xpath('./td[3]/text()').extract_first())
-            sent.append(item.xpath('./td[4]/button/text()').extract_first())
-            delta_icon = item.xpath('./td[5]/span/@class').extract_first()
+        all_assets = response.xpath('//*[@id="fulltable"]/tbody/tr')
+        for asset in all_assets:
+            loader = ItemLoader(item=SentdexItem(), response=response)
+            loader.add_value('ticker', asset.xpath('./td[1]/text()').extract_first())
+            loader.add_value('name', asset.xpath('./td[2]/text()').extract_first())
+            loader.add_value('volumne', asset.xpath('./td[3]/text()').extract_first())
+            loader.add_value('sent', asset.xpath('./td[4]/button/text()').extract_first())
+            delta_icon = asset.xpath('./td[5]/span/@class').extract_first()
             if 'up' in delta_icon:
-                delta.append('Up')
+                loader.add_value('delta', 'Up')
             else:
-                delta.append('Down')
-        
-        df = pd.DataFrame(dict(list(zip(['ticker', 'name', 'volumne', 'sentiment', 'sentiment change'], \
-                                                                [ticker, name, volumne, sent, delta]))))
-        time_tag = str(datetime.date.today())
-        df.to_csv(f'us_stocks_sent_{time_tag}.csv', index=False)
-        yield 'Okay'
+                loader.add_value('delta', 'Down')
+            yield loader.load_item()

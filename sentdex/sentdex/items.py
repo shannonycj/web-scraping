@@ -11,4 +11,8 @@ import scrapy
 class SentdexItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
-    pass
+    ticker = scrapy.Field()
+    name = scrapy.Field()
+    volumne = scrapy.Field()
+    sent = scrapy.Field()
+    delta = scrapy.Field()
